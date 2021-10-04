@@ -14,6 +14,9 @@ void main() => runApp(MineSweeper());
 
 Color currentColor = Colors.grey.shade400;
 int numOfMines = 3;
+int rows = 6;
+int cols = 6;
+String dropdownvalue = '6x6';
 
 class MineSweeper extends StatelessWidget {
   @override
@@ -51,7 +54,7 @@ class HomeState extends State<Home> with TickerProviderStateMixin {
                     child: Column(
               children: <Widget>[
                 Container(
-                  padding: EdgeInsets.only(top: 175.0),
+                  padding: EdgeInsets.only(top: 100.0),
                   child: RichText(
                     text: TextSpan(
                       text: "Minesweeper",
@@ -63,8 +66,77 @@ class HomeState extends State<Home> with TickerProviderStateMixin {
                     ),
                   ),
                 ),
+                Row(
+                  children: <Widget>[
+                    Container(
+                      padding: EdgeInsets.fromLTRB(50.0, 200.0, 0.0, 0.0),
+                      child: RichText(
+                        text: TextSpan(
+                          text: "Select board size : ",
+                          style: TextStyle(
+                            fontSize: 25.0,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: EdgeInsets.fromLTRB(25.0, 200.0, 0.0, 0.0),
+                      child: DropdownButton(
+                        value: dropdownvalue,
+                        icon: const Icon(Icons.arrow_downward),
+                        iconSize: 20,
+                        elevation: 0,
+                        dropdownColor: Colors.transparent,
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 17,
+                        ),
+                        underline: Container(
+                          height: 2,
+                          color: Colors.blue,
+                        ),
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            dropdownvalue = newValue!;
+                            switch (dropdownvalue) {
+                              case '6x6':
+                                rows = 6;
+                                cols = 6;
+                                break;
+                              case '7x7':
+                                rows = 7;
+                                cols = 7;
+                                break;
+                              case '8x8':
+                                rows = 8;
+                                cols = 8;
+                                break;
+                              case '9x9':
+                                rows = 9;
+                                cols = 9;
+                                break;
+                              case '10x10':
+                                rows = 10;
+                                cols = 10;
+                                break;
+                            }
+                          });
+                        },
+                        items: <String>['6x6', '7x7', '8x8', '9x9', '10x10']
+                            .map<DropdownMenuItem<String>>((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
                 Container(
-                  padding: EdgeInsets.fromLTRB(0.0, 300.0, 0.0, 50.0),
+                  padding: EdgeInsets.fromLTRB(0.0, 200.0, 0.0, 50.0),
                   child: RichText(
                     text: TextSpan(
                       text: "Play now!",
@@ -85,14 +157,14 @@ class HomeState extends State<Home> with TickerProviderStateMixin {
                       ),
                       child: TextButton(
                           child: Text(
-                            "Easy\n 9 \u2739",
+                            "Easy\n ${(0.15 * cols * rows).toInt()} \u2739",
                             style: const TextStyle(
                               color: Colors.black,
                               fontSize: 25.0,
                             ),
                           ),
                           onPressed: () {
-                            numOfMines = 9;
+                            numOfMines = (0.15 * cols * rows).toInt();
                             Navigator.push(
                               context,
                               MaterialPageRoute(builder: (context) => Board()),
@@ -107,14 +179,14 @@ class HomeState extends State<Home> with TickerProviderStateMixin {
                       ),
                       child: TextButton(
                           child: Text(
-                            "Medium\n   13 \u2739",
+                            "Medium\n   ${(0.225 * cols * rows).toInt()} \u2739",
                             style: const TextStyle(
                               color: Colors.black,
                               fontSize: 25.0,
                             ),
                           ),
                           onPressed: () {
-                            numOfMines = 13;
+                            numOfMines = (0.225 * cols * rows).toInt();
                             Navigator.push(
                               context,
                               MaterialPageRoute(builder: (context) => Board()),
@@ -129,14 +201,14 @@ class HomeState extends State<Home> with TickerProviderStateMixin {
                       ),
                       child: TextButton(
                           child: Text(
-                            "Hard\n17 \u2739",
+                            "Hard\n${(0.3 * cols * rows).toInt()} \u2739",
                             style: const TextStyle(
                               color: Colors.black,
                               fontSize: 25.0,
                             ),
                           ),
                           onPressed: () {
-                            numOfMines = 17;
+                            numOfMines = (0.3 * cols * rows).toInt();
                             Navigator.push(
                               context,
                               MaterialPageRoute(builder: (context) => Board()),
@@ -184,9 +256,6 @@ class Board extends StatefulWidget {
 }
 
 class BoardState extends State<Board> {
-  final int rows = 9;
-  final int cols = 9;
-
   List<List<TileState>> uiState = [];
   List<List<bool>> tiles = [];
 
@@ -302,7 +371,7 @@ class BoardState extends State<Board> {
 
     return Container(
       color: Colors.grey[700],
-      padding: EdgeInsets.fromLTRB(30.0, 200.0, 30.0, 50.0),
+      padding: EdgeInsets.fromLTRB(20.0, 200.0, 20.0, 0.0),
       child: Column(
         children: boardRow,
       ),
@@ -569,8 +638,8 @@ class BoardState extends State<Board> {
 Widget buildTile(Widget child) {
   return Container(
     padding: EdgeInsets.all(1.0),
-    height: 35.0,
-    width: 35.0,
+    height: 315.0 / rows,
+    width: 315.0 / cols,
     color: Colors.grey[350],
     margin: EdgeInsets.all(2.0),
     child: child,
@@ -604,6 +673,7 @@ class CoveredMineTile extends StatelessWidget {
           style: TextStyle(
             color: Colors.black,
             fontWeight: FontWeight.bold,
+            fontSize: 315 / (max(rows, cols) + 5),
           ),
         ),
       ));
@@ -650,6 +720,7 @@ class OpenMineTIle extends StatelessWidget {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: textColor[count - 1],
+              fontSize: 315 / (max(rows, cols) + 5),
             ),
           ),
           textAlign: TextAlign.center,
@@ -662,6 +733,7 @@ class OpenMineTIle extends StatelessWidget {
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.red,
+            fontSize: 315 / (max(rows, cols) + 5),
           ),
         ),
         textAlign: TextAlign.center,
