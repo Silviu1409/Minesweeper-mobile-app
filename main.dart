@@ -323,36 +323,59 @@ class BoardState extends State<Board> {
       List<Widget> rowChildren = <Widget>[];
       for (int j = 0; j < cols; j++) {
         TileState state = uiState[i][j];
-        int count = mineCount(j, i);
+        bool isflagged = (state == TileState.flagged);
+
+        ///bool isblown = tiles[i][j];
+        int count = mineCount(i, j);
 
         if (!alive && !wonGame) {
           if (state != TileState.blown)
-            state = tiles[j][i] ? TileState.revealed : state;
+            state = tiles[i][j] ? TileState.revealed : state;
         }
+
+        /*
+        if (!alive) {
+          if (state == TileState.flagged && !isblown) {
+            Widget text = RichText(
+              text: TextSpan(),
+            );
+            text = buildInnerTile(RichText(
+              text: TextSpan(
+                text: '\u2716',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                  fontSize: (315 - 4 * rows) / (max(rows, cols) + 5),
+                ),
+              ),
+              textAlign: TextAlign.center,
+            ));
+            buildTile(buildInnerTile(text));
+          }
+        }
+        */
 
         if (state == TileState.covered || state == TileState.flagged) {
           rowChildren.add(GestureDetector(
             onLongPress: () {
-              flag(j, i);
+              flag(i, j);
             },
             onTap: () {
-              if (state == TileState.covered) probe(j, i);
+              if (state == TileState.covered) probe(i, j);
             },
             child: Listener(
                 child: CoveredMineTile(
               flagged: state == TileState.flagged,
-              posX: j,
-              posY: i,
+              posX: i,
+              posY: j,
             )),
           ));
           if (state == TileState.covered) {
             hasCoveredCell = true;
           }
         } else {
-          rowChildren.add(OpenMineTIle(
-            state: state,
-            count: count,
-          ));
+          rowChildren.add(
+              OpenMineTIle(state: state, count: count, isflagged: isflagged));
         }
       }
       boardRow.add(Row(
@@ -509,11 +532,17 @@ class BoardState extends State<Board> {
         bottomNavigationBar: BottomAppBar(
           child: Row(children: <Widget>[
             Container(
-              child: Icon(
-                Icons.star,
-                color: Colors.black,
-                size: 40.0,
-              ),
+              child: alive && !wonGame
+                  ? Icon(
+                      Icons.flag,
+                      color: Colors.black,
+                      size: 40.0,
+                    )
+                  : Icon(
+                      Icons.star,
+                      color: Colors.black,
+                      size: 40.0,
+                    ),
               padding: EdgeInsets.only(left: 150.0),
             ),
             Container(
@@ -576,10 +605,10 @@ class BoardState extends State<Board> {
 
   void probe(int x, int y) {
     if (!alive) return;
-    if (uiState[y][x] == TileState.flagged) return;
+    if (uiState[x][y] == TileState.flagged) return;
     setState(() {
-      if (tiles[y][x]) {
-        uiState[y][x] = TileState.blown;
+      if (tiles[x][y]) {
+        uiState[x][y] = TileState.blown;
         alive = false;
         timer?.cancel();
       } else {
@@ -591,8 +620,8 @@ class BoardState extends State<Board> {
 
   void open(int x, int y) {
     if (!inBoard(x, y)) return;
-    if (uiState[y][x] == TileState.open) return;
-    uiState[y][x] = TileState.open;
+    if (uiState[x][y] == TileState.open) return;
+    uiState[x][y] = TileState.open;
 
     if (mineCount(x, y) > 0) return;
     open(x - 1, y);
@@ -608,12 +637,14 @@ class BoardState extends State<Board> {
   void flag(int x, int y) {
     if (!alive) return;
     setState(() {
-      if (uiState[y][x] == TileState.flagged) {
-        uiState[y][x] = TileState.covered;
+      if (uiState[x][y] == TileState.flagged) {
+        uiState[x][y] = TileState.covered;
         --minesFound;
       } else {
-        uiState[y][x] = TileState.flagged;
-        ++minesFound;
+        if (minesFound < numOfMines) {
+          uiState[x][y] = TileState.flagged;
+          ++minesFound;
+        }
       }
     });
   }
@@ -631,8 +662,8 @@ class BoardState extends State<Board> {
     return count;
   }
 
-  int bombs(int x, int y) => inBoard(x, y) && tiles[y][x] ? 1 : 0;
-  bool inBoard(int x, int y) => x >= 0 && x < cols && y >= 0 && y < rows;
+  int bombs(int x, int y) => inBoard(x, y) && tiles[x][y] ? 1 : 0;
+  bool inBoard(int x, int y) => x >= 0 && x < rows && y >= 0 && y < cols;
 }
 
 Widget buildTile(Widget child) {
@@ -673,14 +704,15 @@ class CoveredMineTile extends StatelessWidget {
           style: TextStyle(
             color: Colors.black,
             fontWeight: FontWeight.bold,
-            fontSize: 315 / (max(rows, cols) + 5),
+            fontSize: (315 - 4 * rows) / (max(rows, cols) + 5),
           ),
         ),
+        textAlign: TextAlign.center,
       ));
     }
     Widget innerTile = Container(
       padding: EdgeInsets.all(1.0),
-      margin: EdgeInsets.all(2.0),
+      margin: EdgeInsets.all(1.0),
       height: 20.0,
       width: 20.0,
       color: currentColor,
@@ -693,8 +725,9 @@ class CoveredMineTile extends StatelessWidget {
 class OpenMineTIle extends StatelessWidget {
   TileState? state;
   int count;
+  bool isflagged;
 
-  OpenMineTIle({this.state, this.count = 0});
+  OpenMineTIle({this.state, this.count = 0, this.isflagged = false});
 
   final List textColor = [
     Colors.blue,
@@ -712,6 +745,7 @@ class OpenMineTIle extends StatelessWidget {
     Widget text = RichText(
       text: TextSpan(),
     );
+
     if (state == TileState.open) {
       if (count != 0) {
         text = RichText(
@@ -720,12 +754,24 @@ class OpenMineTIle extends StatelessWidget {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: textColor[count - 1],
-              fontSize: 315 / (max(rows, cols) + 5),
+              fontSize: (315 - 4 * rows) / (max(rows, cols) + 5),
             ),
           ),
           textAlign: TextAlign.center,
         );
       }
+    } else if (isflagged) {
+      text = RichText(
+        text: TextSpan(
+          text: '\u2691',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.red,
+            fontSize: (315 - 4 * rows) / (max(rows, cols) + 5),
+          ),
+        ),
+        textAlign: TextAlign.center,
+      );
     } else {
       text = RichText(
         text: TextSpan(
@@ -733,7 +779,7 @@ class OpenMineTIle extends StatelessWidget {
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.red,
-            fontSize: 315 / (max(rows, cols) + 5),
+            fontSize: (315 - 4 * rows) / (max(rows, cols) + 5),
           ),
         ),
         textAlign: TextAlign.center,
