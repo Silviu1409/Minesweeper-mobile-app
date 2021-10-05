@@ -17,6 +17,7 @@ int numOfMines = 3;
 int rows = 6;
 int cols = 6;
 String dropdownvalue = '6x6';
+int minesfound = 0;
 
 class MineSweeper extends StatelessWidget {
   @override
@@ -261,7 +262,7 @@ class BoardState extends State<Board> {
 
   bool alive = false;
   bool wonGame = false;
-  int minesFound = 0;
+  int flagsplaced = 0;
   Timer? timer;
   Stopwatch stopwatch = Stopwatch();
 
@@ -280,7 +281,8 @@ class BoardState extends State<Board> {
   void resetBoard() {
     alive = true;
     wonGame = false;
-    minesFound = 0;
+    flagsplaced = 0;
+    minesfound = 0;
     stopwatch.reset();
     stopwatch.stop();
 
@@ -333,9 +335,8 @@ class BoardState extends State<Board> {
             state = tiles[i][j] ? TileState.revealed : state;
         }
 
-        /*
         if (!alive) {
-          if (state == TileState.flagged && !isblown) {
+          if (state == TileState.flagged && !tiles[i][j]) {
             Widget text = RichText(
               text: TextSpan(),
             );
@@ -353,7 +354,6 @@ class BoardState extends State<Board> {
             buildTile(buildInnerTile(text));
           }
         }
-        */
 
         if (state == TileState.covered || state == TileState.flagged) {
           rowChildren.add(GestureDetector(
@@ -386,7 +386,7 @@ class BoardState extends State<Board> {
     }
 
     if (!hasCoveredCell) {
-      if ((minesFound == numOfMines) && alive) {
+      if ((flagsplaced == numOfMines) && alive) {
         wonGame = true;
         stopwatch.stop();
       }
@@ -550,7 +550,9 @@ class BoardState extends State<Board> {
               padding: EdgeInsets.only(top: 5.0),
               child: RichText(
                 text: TextSpan(
-                  text: "$minesFound/$numOfMines",
+                  text: alive
+                      ? "$flagsplaced/$numOfMines"
+                      : "$minesfound/$numOfMines",
                   style: TextStyle(
                       color: Colors.black,
                       backgroundColor: Colors.transparent,
@@ -639,11 +641,13 @@ class BoardState extends State<Board> {
     setState(() {
       if (uiState[x][y] == TileState.flagged) {
         uiState[x][y] = TileState.covered;
-        --minesFound;
+        if (tiles[x][y]) minesfound--;
+        --flagsplaced;
       } else {
-        if (minesFound < numOfMines) {
+        if (tiles[x][y]) minesfound++;
+        if (flagsplaced < numOfMines) {
           uiState[x][y] = TileState.flagged;
-          ++minesFound;
+          ++flagsplaced;
         }
       }
     });
