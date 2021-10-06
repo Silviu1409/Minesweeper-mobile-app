@@ -16,7 +16,7 @@ Color currentColor = Colors.grey.shade400;
 int numOfMines = 3;
 int rows = 6;
 int cols = 6;
-String dropdownvalue = '6x6';
+String dropdownvalue = '5x5';
 int minesfound = 0;
 
 class MineSweeper extends StatelessWidget {
@@ -55,7 +55,7 @@ class HomeState extends State<Home> with TickerProviderStateMixin {
                     child: Column(
               children: <Widget>[
                 Container(
-                  padding: EdgeInsets.only(top: 100.0),
+                  padding: EdgeInsets.only(top: 80.0),
                   child: RichText(
                     text: TextSpan(
                       text: "Minesweeper",
@@ -70,7 +70,7 @@ class HomeState extends State<Home> with TickerProviderStateMixin {
                 Row(
                   children: <Widget>[
                     Container(
-                      padding: EdgeInsets.fromLTRB(50.0, 200.0, 0.0, 0.0),
+                      padding: EdgeInsets.fromLTRB(50.0, 240.0, 0.0, 0.0),
                       child: RichText(
                         text: TextSpan(
                           text: "Select board size : ",
@@ -83,7 +83,7 @@ class HomeState extends State<Home> with TickerProviderStateMixin {
                       ),
                     ),
                     Container(
-                      padding: EdgeInsets.fromLTRB(25.0, 200.0, 0.0, 0.0),
+                      padding: EdgeInsets.fromLTRB(25.0, 240.0, 0.0, 0.0),
                       child: DropdownButton(
                         value: dropdownvalue,
                         icon: const Icon(Icons.arrow_downward),
@@ -102,6 +102,10 @@ class HomeState extends State<Home> with TickerProviderStateMixin {
                           setState(() {
                             dropdownvalue = newValue!;
                             switch (dropdownvalue) {
+                              case '5x5':
+                                rows = 5;
+                                cols = 5;
+                                break;
                               case '6x6':
                                 rows = 6;
                                 cols = 6;
@@ -125,8 +129,14 @@ class HomeState extends State<Home> with TickerProviderStateMixin {
                             }
                           });
                         },
-                        items: <String>['6x6', '7x7', '8x8', '9x9', '10x10']
-                            .map<DropdownMenuItem<String>>((String value) {
+                        items: <String>[
+                          '5x5',
+                          '6x6',
+                          '7x7',
+                          '8x8',
+                          '9x9',
+                          '10x10'
+                        ].map<DropdownMenuItem<String>>((String value) {
                           return DropdownMenuItem<String>(
                             value: value,
                             child: Text(value),
@@ -137,7 +147,7 @@ class HomeState extends State<Home> with TickerProviderStateMixin {
                   ],
                 ),
                 Container(
-                  padding: EdgeInsets.fromLTRB(0.0, 200.0, 0.0, 50.0),
+                  padding: EdgeInsets.fromLTRB(0.0, 200.0, 0.0, 30.0),
                   child: RichText(
                     text: TextSpan(
                       text: "Play now!",
@@ -326,8 +336,6 @@ class BoardState extends State<Board> {
       for (int j = 0; j < cols; j++) {
         TileState state = uiState[i][j];
         bool isflagged = (state == TileState.flagged);
-
-        ///bool isblown = tiles[i][j];
         int count = mineCount(i, j);
 
         if (!alive && !wonGame) {
@@ -355,7 +363,8 @@ class BoardState extends State<Board> {
           }
         }
 
-        if (state == TileState.covered || state == TileState.flagged) {
+        if (state == TileState.covered ||
+            (state == TileState.flagged && alive)) {
           rowChildren.add(GestureDetector(
             onLongPress: () {
               flag(i, j);
@@ -373,9 +382,20 @@ class BoardState extends State<Board> {
           if (state == TileState.covered) {
             hasCoveredCell = true;
           }
+        } else if (state == TileState.flagged && !alive) {
+          rowChildren.add(OpenMineTIle(
+              state: state,
+              count: count,
+              isflagged: isflagged,
+              isalive: alive,
+              isblown: tiles[i][j]));
         } else {
-          rowChildren.add(
-              OpenMineTIle(state: state, count: count, isflagged: isflagged));
+          rowChildren.add(OpenMineTIle(
+              state: state,
+              count: count,
+              isflagged: isflagged,
+              isalive: alive,
+              isblown: tiles[i][j]));
         }
       }
       boardRow.add(Row(
@@ -484,14 +504,6 @@ class BoardState extends State<Board> {
                                     ),
                                   ),
                                   actions: <Widget>[
-                                    /*
-                                    TextButton(
-                                      child: Text('Revert color'),
-                                      onPressed: () {
-                                        changeColor(currentColor);
-                                      },
-                                    ),
-                                    */
                                     TextButton(
                                       child: Text('Select color'),
                                       onPressed: () {
@@ -730,8 +742,15 @@ class OpenMineTIle extends StatelessWidget {
   TileState? state;
   int count;
   bool isflagged;
+  bool isalive;
+  bool isblown;
 
-  OpenMineTIle({this.state, this.count = 0, this.isflagged = false});
+  OpenMineTIle(
+      {this.state,
+      this.count = 0,
+      this.isflagged = false,
+      this.isalive = false,
+      this.isblown = false});
 
   final List textColor = [
     Colors.blue,
@@ -750,6 +769,20 @@ class OpenMineTIle extends StatelessWidget {
       text: TextSpan(),
     );
 
+    if (!isalive && state != TileState.open) {
+      text = RichText(
+        text: TextSpan(
+          text: '\u2716',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.red,
+            fontSize: (315 - 4 * rows) / (max(rows, cols) + 5),
+          ),
+        ),
+        textAlign: TextAlign.center,
+      );
+    }
+
     if (state == TileState.open) {
       if (count != 0) {
         text = RichText(
@@ -764,7 +797,7 @@ class OpenMineTIle extends StatelessWidget {
           textAlign: TextAlign.center,
         );
       }
-    } else if (isflagged) {
+    } else if (isflagged && isblown) {
       text = RichText(
         text: TextSpan(
           text: '\u2691',
@@ -776,7 +809,7 @@ class OpenMineTIle extends StatelessWidget {
         ),
         textAlign: TextAlign.center,
       );
-    } else {
+    } else if (isblown) {
       text = RichText(
         text: TextSpan(
           text: '\u2739',
